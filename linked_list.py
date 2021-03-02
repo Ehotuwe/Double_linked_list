@@ -35,32 +35,14 @@ class DoubleNode(Node):
 
     @property
     def prev_node(self):
-
         return self._prev_node
 
     @prev_node.setter
     def prev_node(self, value):
-        if value is not None and not isinstance(value, Node):
-            raise ValueError
-        # _prev_node = weakref.ref(value)
-        self._prev_node = value
-
-
-# не используется
-class LinkedListIterator:
-    def __init__(self, head):
-        self.current = head
-
-    def __next__(self):
-        if self.current is None:
-            raise StopIteration
-
-        node = self.current
-        self.current = self.current.next_node
-        return node.data
-
-    def __iter__(self):
-        return self
+        if value is not None and not isinstance(value, DoubleNode):
+            raise ValueError('проблемы в сеттере')
+        if value is not None:
+            self._prev_node = weakref.ref(value)
 
 
 class LinkedList:
@@ -186,52 +168,75 @@ def iter_print(seq: Iterable):
         print(item)
 
 
-class Double_LinkedList(LinkedList):
+class DoubleLinkedList(LinkedList):
 
     def __init__(self):
 
         self.tail = None
         super().__init__()
 
+    def __str__(self):
+        return "<->".join(str(node) for node in self._node_iter())
+
     def append(self, data: Any):
         new_node = DoubleNode(data)
-        if self.head is None:
+        new_node.prev_node = self.tail
+
+        if self.tail is None:
             self.head = new_node
             self.tail = new_node
+            new_node.next_node = None
+
         else:
-
-            self.tail.prev_node = self.tail
+            self.tail.next_node = new_node
+            new_node.next_node = None
             self.tail = new_node
-
         self._size += 1
-
-
 
     def insert(self, data, index=0):
         if index < 0 or index > self._size:
             raise ValueError
 
-        new_node = Node(data)
-        self._size += 1
+        new_node = DoubleNode(data)
+
         if index == 0:
+            new_node.prev_node = None
             new_node.next_node = self.head
             self.head = new_node
+        elif index == self._size:
+            self.tail.next_node = new_node
+            new_node.next_node = None
+            new_node.prev_node = self.tail
+            self.tail = new_node
         else:
             for i, node in enumerate(self._node_iter()):
                 if i == index - 1:
                     new_node.next_node = node.next_node
+                    new_node.prev_node = node
+                    node.next_node.prev_node = new_node
                     node.next_node = new_node
+        self._size += 1
 
     def clear(self):
         self._size = 0
         self.head = None
+        self.tail = None
 
-    def index(self, data: Any):
-        for i, node in enumerate(self._node_iter()):
-            if node.data == data:
-                return i
-
-        raise ValueError
+    # def delete(self, index: int):
+    #     if index < 0 or index >= self._size:
+    #         raise ValueError
+    #
+    #     self._size -= 1
+    #     if index == 0:
+    #
+    #         self.head = self.head.next_node
+    #     elif index == self._size-1:
+    #
+    #         self.tail = self.tail.prev_node
+    #     else:
+    #         for i, node in enumerate(self._node_iter()):
+    #             if i == index - 1:
+    #                 node.next_node = node.next_node.next_node
 
     def delete(self, index: int):
         if index < 0 or index >= self._size:
@@ -245,29 +250,50 @@ class Double_LinkedList(LinkedList):
                 if i == index - 1:
                     node.next_node = node.next_node.next_node
 
+    @property
+    def size(self):
+        return self._size
+
+
+class DoubleLinkedListWithDriver(DoubleLinkedList):
+    def __init__(self, driver: my_driver.IStructureDriver = None):
+        self._driver = driver
+        super().__init__()
+
+    @property
+    def driver(self) -> my_driver.IStructureDriver:
+        if self._driver is None:
+            self._driver = my_driver.FabricDriverBuilder.get_driver()
+        return self._driver
+
+    def read(self):
+        self.clear()
+        for item in self.driver.read():
+            self.append(item)
+
+    def write(self):
+        ll_as_list = [item for item in self]
+        self.driver.write(ll_as_list)
+
 
 def main():
     # driver = PickleFileDriver("some.bin")
-    # ll = LinkedListWithDriver()
-    # ll.append("a")
-    # ll.append("b")
-    # ll.append("c")
-    # ll.append("d")
-    # ll.append("e")
-    # ll.write()
-    # print(ll)
-    # # ll.driver = JsonFileDriver("some.json")
-    # ll.read()
-    dll = Double_LinkedList()
+    dll = DoubleLinkedListWithDriver()
+
     dll.append('a')
     dll.append("b")
-    print(dll)
-    # iter_print([1, 2, 3, 4])
-    # iter_print({1, 2, 3, 4})
-    # iter_print("aas")
-    # iter_print(ll)
-
-    # {"a": 1}.get("b", 42)
+    dll.append("c")
+    dll.append("d")
+    dll.append("e")
+    dll.insert('r', 5)
+    dll.insert('r', 6)
+    dll.insert('r', 0)
+    dll.insert('r', 3)
+    dll.write()
+    # print(ll)
+    # # ll.driver = JsonFileDriver("some.json")
+    # dll.read()
+    # dll = DoubleLinkedList()
 
 
 if __name__ == '__main__':
