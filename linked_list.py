@@ -28,7 +28,7 @@ class DoubleNode(Node):
             self, data: Any, next_node: Optional["Node"] = None, prev_node: Optional["Node"] = None
     ):
         super().__init__(data, next_node)
-        self._prev_node = prev_node
+        self.prev_node = prev_node
 
     def __str__(self):
         return f"[{self.data}]"
@@ -36,13 +36,13 @@ class DoubleNode(Node):
     @property
     def prev_node(self):
         if self._prev_node is not None:
-            return self.prev_node
+            return self._prev_node()
         else:
             return self._prev_node
 
     @prev_node.setter
     def prev_node(self, value):
-        if value is not None and not isinstance(value, DoubleNode):
+        if value is not None and not isinstance(value, Node):
             raise ValueError('проблемы в сеттере')
         if value is not None:
             self._prev_node = weakref.ref(value)
@@ -190,11 +190,9 @@ class DoubleLinkedList(LinkedList):
         if self.tail is None:
             self.head = new_node
             self.tail = new_node
-            new_node.next_node = None
-
         else:
             self.tail.next_node = new_node
-            new_node.next_node = None
+
             self.tail = new_node
         self._size += 1
 
